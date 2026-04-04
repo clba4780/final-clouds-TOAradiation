@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grab-era5"
+version = "0.1.0"
+description = "Lightweight accessor for ERA5 reanalysis data via ARCO-ERA5 on Google Cloud Storage"
+requires-python = ">=3.10"
+dependencies = [
+    "xarray>=2022.6",
+    "zarr",
+    "gcsfs",
+    "dask",
+    "numpy",
+]
+
+[project.optional-dependencies]
+plot = ["matplotlib"]
