@@ -52,31 +52,44 @@ plot 1: graph of tempereature averaged over a day and TOA radiation
 plot 2: graph of total cloud cover and TOA radoation
 """
 
+def avg_values():
 # 2-meter temperature avaerged over latitude and longitude
-ts = t2m.mean(["latitude", "longitude"]) - 273.15
+    ts = t2m.mean(["latitude", "longitude"]) - 273.15
 
 # TOA radiation averaged over lat/lon
-avg_toa = toa.mean(["latitude", "longitude"])
+    avg_toa = toa.mean(["latitude", "longitude"])
 
 # total cloud cover averaged over latitude, longitude
-avg_cc = cc.mean(["latitude", "longitude"])
+    avg_cc = cc.mean(["latitude", "longitude"])
+
+    return(ts, avg_toa, avg_cc)
 
 
-fig, (ax_temp, ax_cc) = plt.subplots(2,1, figsize = (9,5), sharex=True)
+def daily_mean(ds):
+    return ds.resample(time="1D").mean()
 
-ax_temp.plot(t2m["time"], ts)
-ax_temp.set_ylabel("Temperature (degC)")
-ax_temp.set_xlabel("Time")
-ax_temp.set_title("2-meter temperature vs TOA incident solar radiation")
-ax_temp.grid(True, alpha = 0.3)
+def correlation(ds1, ds2):
+    return (float(ds1.corr(ds2)))
 
-ax_cc.plot(cc['time'], avg_cc)
-ax_cc.set_ylabel("Percent cloud cover")
-ax_cc.set_xlabel("Time")
-ax_cc.set_title("Total Cloud Cover vs TOA Incident Solar Radiation")
-ax_cc.grid(True, alpha=0.3)
+def simple_comparison(time_slice, ds1, ds2, label1, label2, title, fig_name):
+    plt.figure()
+    plt.plot(time_slice, ds1, label = label1)
+    plt.plot(time_slice, ds2, label=label2)
+    plt.legend(loc="best")
+    plt.title(title)
+    plt.xlabel("Time")
+    plt.save(fig_name, dpi=150)
+    print(fig_name, " saved")
+    plt.show()
 
-plt.tight_layout()
-plt.savefig("era5_t2m_toa_cc_comparison.png", dpi = 150)
-print("era5_t2m_toa_cc_comparison.png saved")
-plt.show()
+
+if __name__ == "__main__":
+    daily_mean(t2m)
+    daily_mean(cc)
+
+    correlation(t2m, cc)
+
+    simple_comparison(t2m['time'], t2m, cc, 
+                      '2m-temperature', 'total cloud cover',
+                      '2m-temperature vs total cloud cover',
+                      "t2m_vs_cc.png")

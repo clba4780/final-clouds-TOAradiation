@@ -1,6 +1,25 @@
-from project import analysis, get_era5_variables
+from grab_era5 import load, open_era5
+from project import get_era5_variables
 
 import matplotlib.pyplot as plt
+
+"""
+Part 2:
+Analyze data from era5
+2 subplots
+plot 1: graph of tempereature averaged over a day and TOA radiation
+plot 2: graph of total cloud cover and TOA radoation
+"""
+
+# 2-meter temperature avaerged over latitude and longitude
+ts = t2m.mean(["latitude", "longitude"]) - 273.15
+
+# TOA radiation averaged over lat/lon
+avg_toa = toa.mean(["latitude", "longitude"])
+
+# total cloud cover averaged over latitude, longitude
+avg_cc = cc.mean(["latitude", "longitude"])
+
 
 t2m, toa, cc = get_era5_variables(
     time_slice = ("2020-01-01", "2020-01-31"),
