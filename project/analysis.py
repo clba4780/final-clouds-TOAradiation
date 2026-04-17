@@ -1,6 +1,8 @@
+import os
+import xarray as xr
+import matplotlib.pyplot as plt
 from grab_era5 import load, open_era5
 
-import matplotlib.pyplot as plt
 
 """
 Part 1:
@@ -30,19 +32,41 @@ def get_cc(time_slice, lat, lon):
     return (open_era5("total_cloud_cover", time_slice=time_slice, lat=lat, lon=lon))
 
 # A funtion load the date into three different variables
-def get_era5_variables(time_slice, lat, lon):
+def get_era5_variables(time_slice, lat, lon, cache = True):
+    fname = f"era_5_{time_slice[0]}_{time_slice[1]}_{lat}_{lon}"
+    
+    if cache and os.path.exists(fname):
+        print ("Loading from cache...")
+        return xr.open_dataset(fname + ".nc")
+    
+    print ("Downloading data set...")
     t2m = load(get_t2m(time_slice, lat, lon))
     toa = load(get_toa(time_slice, lat, lon))
     cc = load(get_cc(time_slice, lat, lon))
-    return (t2m, toa, cc)
+    
+    ds = xr.Dataset({
+        "t2m" : t2m, 
+        "toa" : toa, 
+        "cc" : cc
+    })
+    
+    if cache:
+        ds.to_netcdf(fname + ".nc")
+    
+    return (ds)
+
 
 # input dates, lat, long for each variable in get_era5_variables
-t2m, toa, cc = get_era5_variables(
+ds = get_era5_variables(
     time_slice = ("2020-01-01", "2020-01-31"),
     # lat, lon correspond to the state of Kansas
     lat = (37,40),
     lon = (95, 102)
 )
+
+t2m = ds["t2m"]
+toa = ds["toa"]
+cc = ds["cc"]
 
 """
 Part 2:
@@ -52,9 +76,9 @@ plot 1: graph of tempereature averaged over a day and TOA radiation
 plot 2: graph of total cloud cover and TOA radoation
 """
 
-def avg_values():
+def avg_values(t2m, toa, cc):
 # 2-meter temperature avaerged over latitude and longitude
-    ts = t2m.mean(["latitude", "longitude"]) - 273.15
+    t2m_avg = t2m.mean(["latitude", "longitude"]) - 273.15
 
 # TOA radiation averaged over lat/lon
     avg_toa = toa.mean(["latitude", "longitude"])
@@ -62,14 +86,16 @@ def avg_values():
 # total cloud cover averaged over latitude, longitude
     avg_cc = cc.mean(["latitude", "longitude"])
 
-    return(ts, avg_toa, avg_cc)
+    return(t2m_avg, avg_toa, avg_cc)
 
 
 def daily_mean(ds):
     return ds.resample(time="1D").mean()
 
 def correlation(ds1, ds2):
+    ds1, ds2 = ds1.align(ds2)
     return (float(ds1.corr(ds2)))
+
 
 def simple_comparison(time_slice, ds1, ds2, label1, label2, title, fig_name):
     plt.figure()
@@ -78,18 +104,23 @@ def simple_comparison(time_slice, ds1, ds2, label1, label2, title, fig_name):
     plt.legend(loc="best")
     plt.title(title)
     plt.xlabel("Time")
-    plt.save(fig_name, dpi=150)
+    plt.savefig(fig_name, dpi=150)
     print(fig_name, " saved")
     plt.show()
 
 
 if __name__ == "__main__":
-    daily_mean(t2m)
-    daily_mean(cc)
+    t2m_avg, toa_avg, cc_avg = avg_values(t2m, toa, cc)      
+    
+    t2m_daily = daily_mean(t2m_avg)
+    cc_daily = daily_mean(cc_avg)
+    toa_daily = daily_mean(toa_avg)
 
-    correlation(t2m, cc)
+    corr_temp_cloud = correlation(t2m, cc)
+    corr_temp_toa = correlation(t2m, toa)
+    corr_toa_cloud = correlation(toa, cc)
 
-    simple_comparison(t2m['time'], t2m, cc, 
-                      '2m-temperature', 'total cloud cover',
+    simple_comparison(t2m_daily['time'], t2m_daily, cc_daily, 
+                      'Surface Temperature (degC)', 'Cloud Cover',
                       '2m-temperature vs total cloud cover',
                       "t2m_vs_cc.png")
