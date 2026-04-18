@@ -33,9 +33,9 @@ def get_cc(time_slice, lat, lon):
 
 # A funtion load the date into three different variables
 def get_era5_variables(time_slice, lat, lon, cache = True):
-    fname = f"era_5_{time_slice[0]}_{time_slice[1]}_{lat}_{lon}"
+    fname = f"era_5_{time_slice[0]}_{time_slice[1]}"
     
-    if cache and os.path.exists(fname):
+    if cache and os.path.exists(fname + ".nc"):
         print ("Loading from cache...")
         return xr.open_dataset(fname + ".nc")
     
@@ -51,6 +51,7 @@ def get_era5_variables(time_slice, lat, lon, cache = True):
     })
     
     if cache:
+        print ("saving dataset...")
         ds.to_netcdf(fname + ".nc")
     
     return (ds)
@@ -58,12 +59,14 @@ def get_era5_variables(time_slice, lat, lon, cache = True):
 
 # input dates, lat, long for each variable in get_era5_variables
 ds = get_era5_variables(
-    time_slice = ("2020-01-01", "2020-01-31"),
+    time_slice = ("2020-01-01", "2020-02-01"),
     # lat, lon correspond to the state of Kansas
     lat = (37,40),
     lon = (95, 102)
 )
 
+# Create a new dataset from the netCDF file for each varibable
+# these can be manipulated to create figures and comparisons
 t2m = ds["t2m"]
 toa = ds["toa"]
 cc = ds["cc"]
@@ -93,20 +96,27 @@ def daily_mean(ds):
     return ds.resample(time="1D").mean()
 
 def correlation(ds1, ds2):
-    ds1, ds2 = ds1.align(ds2)
-    return (float(ds1.corr(ds2)))
+    return (xr.corr(ds1, ds2, dim = None, weights = None))
 
 
 def simple_comparison(time_slice, ds1, ds2, label1, label2, title, fig_name):
-    plt.figure()
-    plt.plot(time_slice, ds1, label = label1)
-    plt.plot(time_slice, ds2, label=label2)
-    plt.legend(loc="best")
+    fig, ax1 = plt.subplots()
+    
+    ax1.plot(time_slice, ds1, label = label1, color = 'tab:blue')
+    ax1.set_xlabel("Time")
+    ax1.set_ylabel(label1, color = 'tab:blue')
+    ax1.tick_params(axis = 'y', labelcolor = 'tab:blue')
+
+    ax2 = ax1.twinx()
+    ax2.plot(time_slice, ds2, label = label2, color = 'tab:red')
+    ax2.set_ylabel(label2, color = 'tab:red')
+    ax2.tick_params(axis = 'y', labelcolor = 'tab:red')
+
     plt.title(title)
-    plt.xlabel("Time")
-    plt.savefig(fig_name, dpi=150)
-    print(fig_name, " saved")
+
+    plt.savefig(f"{fig_name}.png", dpi = 150)
     plt.show()
+
 
 
 if __name__ == "__main__":
@@ -120,7 +130,7 @@ if __name__ == "__main__":
     corr_temp_toa = correlation(t2m, toa)
     corr_toa_cloud = correlation(toa, cc)
 
-    simple_comparison(t2m_daily['time'], t2m_daily, cc_daily, 
-                      'Surface Temperature (degC)', 'Cloud Cover',
-                      '2m-temperature vs total cloud cover',
-                      "t2m_vs_cc.png")
+    simple_comparison(t2m_daily['time'], t2m_daily, toa_daily, 
+                      'Surface Temperature (degC)', 'TOA Incident Solar Radiation (W/m^2)',
+                      'TOA Incident Solar Radition vs 2-meter temperature',
+                      "t2m_vs_ta.png")
