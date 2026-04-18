@@ -54,10 +54,7 @@ def get_era5_variables(time_slice, lat, lon, cache = True):
         print ("saving dataset...")
         ds.to_netcdf(fname + ".nc")
     
-    t2m = ds["t2m"]
-    toa = ds["toa"]
-    cc = ds["cc"]
-    return (t2m, toa, cc)
+    return (ds)
 
 
 # input dates, lat, long for each variable in get_era5_variables
@@ -70,7 +67,9 @@ ds = get_era5_variables(
 
 # Create a new dataset from the netCDF file for each varibable
 # these can be manipulated to create figures and comparisons
-
+t2m = ds["t2m"]
+toa = ds["toa"]
+cc = ds["cc"]
 
 """
 Part 2:
