@@ -1,5 +1,5 @@
 from grab_era5 import load, open_era5
-from project import get_era5_variables
+from project.analysis import get_era5_variables
 
 import matplotlib.pyplot as plt
 
@@ -10,39 +10,28 @@ Analyze data from era5
 plot 1: graph of tempereature averaged over a day and TOA radiation
 plot 2: graph of total cloud cover and TOA radoation
 """
-
-# 2-meter temperature avaerged over latitude and longitude
-ts = t2m.mean(["latitude", "longitude"]) - 273.15
-
-# TOA radiation averaged over lat/lon
-avg_toa = toa.mean(["latitude", "longitude"])
-
-# total cloud cover averaged over latitude, longitude
-avg_cc = cc.mean(["latitude", "longitude"])
-
-
 t2m, toa, cc = get_era5_variables(
-    time_slice = ("2020-01-01", "2020-01-31"),
-    # lat, lon correspond to the state of Kansas
+    time_slice = ("2026-01-01", "2026-01-03"),
     lat = (37,40),
-    lon = (95, 102)
+    lon = (95,102)
 )
+
 
 fig, (ax_temp, ax_cc) = plt.subplots(2,1, figsize = (9,5), sharex=True)
 
-ax_temp.plot(t2m["time"], ts)
+ax_temp.plot(t2m["time"], t2m)
 ax_temp.set_ylabel("Temperature (degC)")
 ax_temp.set_xlabel("Time")
-ax_temp.set_title("2-meter temperature vs TOA incident solar radiation")
+ax_temp.set_title("2-meter temperature")
 ax_temp.grid(True, alpha = 0.3)
 
-ax_cc.plot(cc['time'], avg_cc)
-ax_cc.set_ylabel("Percent cloud cover")
+ax_cc.plot(toa['time'], toa)
+ax_cc.set_ylabel("TOA Incident Solar Radiation (W/m^s)")
 ax_cc.set_xlabel("Time")
-ax_cc.set_title("Total Cloud Cover vs TOA Incident Solar Radiation")
+ax_cc.set_title("TOA Incident Solar Radiation")
 ax_cc.grid(True, alpha=0.3)
 
 plt.tight_layout()
 plt.savefig("era5_t2m_toa_cc_comparison.png", dpi = 150)
-print("era5_t2m_toa_cc_comparison.png saved")
+print("era5_t2m_toa_comparison.png saved")
 plt.show()
