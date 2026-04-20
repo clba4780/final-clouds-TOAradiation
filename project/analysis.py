@@ -79,6 +79,7 @@ plot 1: graph of tempereature averaged over a day and TOA radiation
 plot 2: graph of total cloud cover and TOA radoation
 """
 
+# Turn this into a function that takes spatial averages, them temporal averges, then normalize for comparisons
 def avg_values(t2m, toa, cc):
 # 2-meter temperature avaerged over latitude and longitude
     t2m_avg = t2m.mean(["latitude", "longitude"]) - 273.15
