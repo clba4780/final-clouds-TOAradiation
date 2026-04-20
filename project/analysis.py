@@ -19,30 +19,19 @@ Paramaters:
 - Longitude: lon
     Input longitude range
 """
-# A funtion to get the 2-meter temperature (Units: K)
-def get_t2m(time_slice, lat, lon):
-    return (open_era5("2m_temperature", time_slice=time_slice, lat=lat, lon=lon))
-
-# A funtion to the the TOA incident solar radition (Units: W/m^2)
-def get_toa(time_slice, lat, lon):
-    return (open_era5("toa_incident_solar_radiation", time_slice=time_slice, lat=lat, lon=lon))
-
-# A funtion to get the total cloud cover (0-1)
-def get_cc(time_slice, lat, lon):
-    return (open_era5("total_cloud_cover", time_slice=time_slice, lat=lat, lon=lon))
 
 # A funtion load the date into three different variables
 def get_era5_variables(time_slice, lat, lon, cache = True):
-    fname = f"era_5_{time_slice[0]}_{time_slice[1]}"
+    fname = f"era_5_{time_slice[0]}_{time_slice[1]}_{lat}_{lon}"
     
     if cache and os.path.exists(fname + ".nc"):
         print ("Loading from cache...")
         return xr.open_dataset(fname + ".nc")
     
     print ("Downloading data set...")
-    t2m = load(get_t2m(time_slice, lat, lon))
-    toa = load(get_toa(time_slice, lat, lon))
-    cc = load(get_cc(time_slice, lat, lon))
+    t2m = load(open_era5("2m_temperature", time_slice, lat, lon))
+    toa = load(open_era5("toa_incident_solar_radiation", time_slice, lat, lon))
+    cc = load(open_era5("total_cloud_cover",time_slice, lat, lon))
     
     ds = xr.Dataset({
         "t2m" : t2m, 
@@ -54,22 +43,16 @@ def get_era5_variables(time_slice, lat, lon, cache = True):
         print ("saving dataset...")
         ds.to_netcdf(fname + ".nc")
     
-    return (ds)
+    return (ds['t2m'], ds['toa'], ds['cc'])
 
 
 # input dates, lat, long for each variable in get_era5_variables
-ds = get_era5_variables(
+t2m, toa, cc = get_era5_variables(
     time_slice = ("2020-01-01", "2020-02-01"),
     # lat, lon correspond to the state of Kansas
     lat = (37,40),
     lon = (95, 102)
 )
-
-# Create a new dataset from the netCDF file for each varibable
-# these can be manipulated to create figures and comparisons
-t2m = ds["t2m"]
-toa = ds["toa"]
-cc = ds["cc"]
 
 """
 Part 2:

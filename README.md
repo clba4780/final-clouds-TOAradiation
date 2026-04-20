@@ -24,18 +24,13 @@ from project import get_era5_variables
 
 # 1. Open era5 and download the variables: 2-meter temperature (2m_temperature), TOA incident solar radition (toa_incident_solar_radiation), and total cloud cover (total_cloud_cover). 
 
-# The function get_era5_variables loads all three variables into a NetCDF file
-ds = get_era5_variables(
+# The function get_era5_variables loads all three variables into a NetCDF file then sesperates them for analysis
+t2m, toa, cc = get_era5_variables(
     time_slice = ("2020-01-01", "2020-02-01"),
     # lat, lon correspond to the state of Kansas
     lat = (37,40)
     lon = (95, 102)
 )
-
-# Seperate the varibles from the larger dataset (ds) into seperate variables to manipulate 
-t2m = ds["t2m"]
-toa = ds["toa"]
-cc = ds["cc"]
 
 # compute simple analysis for one location
 # UPDATE THEN ADD SIMPLE ANALYSIS 
