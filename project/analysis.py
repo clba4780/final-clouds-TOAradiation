@@ -3,7 +3,6 @@ import xarray as xr
 import matplotlib.pyplot as plt
 from grab_era5 import load, open_era5
 
-
 """
 Part 1:
 Grabbing 2-meter temperature, total incident (SW) radition at TOA , and 

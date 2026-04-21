@@ -1,7 +1,4 @@
-import xarray as xr
 import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 
 from project.analysis import get_era5_variables
 
@@ -15,7 +12,6 @@ This example compares two different location, but it can also be used to compare
 4. normalize the Datasets
 5. Plot the relationship
 """
-# Generating synthetic data because, I am working on getting the actual data an just need a
 
 
 #Location 1: Kansas

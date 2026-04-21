@@ -1,3 +1,5 @@
+import sys
+print (sys.path)
 from project.analysis import get_era5_variables
 
 import matplotlib.pyplot as plt
