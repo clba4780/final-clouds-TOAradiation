@@ -1,6 +1,8 @@
 import os
 import xarray as xr
 import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 from grab_era5 import load, open_era5
 
 """
@@ -48,81 +50,42 @@ def get_era5_variables(time_slice, lat, lon, name, cache = True):
 
 
 
-
-"""
-Part 2:
-Analyze data from era5
-2 subplots
-plot 1: graph of tempereature averaged over a day and TOA radiation
-plot 2: graph of total cloud cover and TOA radoation
-"""
-
-# Turn this into a function that takes spatial averages, them temporal averges, then normalize for comparisons
-def avg_values(snsr, snsr_cs, toa, cc):
-# Surface net solar radiation averaged over latitude and longitude
-    snsr_avg = ds['snsr'].mean(["latitude", "longitude"])
-
-#Surface net solar radition clear sky averaged over latutude and longitude
-    snsr_cs_avg = ds['snsr_cs'].mean(['latitude', 'longitude'])
-
-# TOA radiation averaged over lat/lon
-    avg_toa = ds['toa'].mean(["latitude", "longitude"])
-
-# total cloud cover averaged over latitude, longitude
-    avg_cc = ds['cc'].mean(["latitude", "longitude"])
-
-    return(snsr_avg, snsr_cs_avg, avg_toa, avg_cc)
-
-
-def daily_mean(ds):
-    return ds.resample(time="1D").mean()
-
-def correlation(ds1, ds2):
-    return (xr.corr(ds1, ds2, dim = None, weights = None))
-
-
-def simple_comparison(time_slice, ds1, ds2, label1, label2, title, fig_name):
-    fig, ax1 = plt.subplots()
-    
-    ax1.plot(time_slice, ds1, label = label1, color = 'tab:blue')
-    ax1.set_xlabel("Time")
-    ax1.set_ylabel(label1, color = 'tab:blue')
-    ax1.tick_params(axis = 'y', labelcolor = 'tab:blue')
-    ax1.legend()
-
-    ax2 = ax1.twinx()
-    ax2.plot(time_slice, ds2, label = label2, color = 'tab:red')
-    ax2.set_ylabel(label2, color = 'tab:red')
-    ax2.tick_params(axis = 'y', labelcolor = 'tab:red')
-    ax2.legend()
-
-    plt.title(title)
-    plt.savefig(f"{fig_name}.png", dpi = 150)
-    plt.show()
-
-
-
-if __name__ == "__main__":
-    ds = get_era5_variables(
-    time_slice = ("2020-01-01", "2020-01-07"),
+ds = get_era5_variables(
+    time_slice = ("2025-06-22", "2025-06-22"),
     # lat, lon correspond to the state of Kansas
-    lat = (37,40),
-    lon = (95, 102), 
-    name = 'oneweek_jan_kansas'
+    lat = (25, 50),
+    lon = (-125, -65), 
+    name = '2025_Jun22_contigUS'
 )
-    
-    snsr_avg, snsr_cs_avg, toa_avg, cc_avg = avg_values(ds['snsr'], ds['snsr_cs'], ds['toa'], ds['cc'])      
-    
-    snsr_daily = daily_mean(snsr_avg) / 1000
-    snsr_cs_daily = daily_mean(snsr_cs_avg) / 1000
-    cc_daily = daily_mean(cc_avg)
-    toa_daily = daily_mean(toa_avg)
 
-    corr_temp_cloud = correlation(ds['snsr'], ds['cc'])
-    corr_temp_toa = correlation(ds['snsr'], ds['toa'])
-    corr_toa_cloud = correlation(ds['toa'], ds['cc'])
+# take the difference between snsr and snsr_cs to determine the radiative effect of the cloud
+ds['cre'] = ds['snsr_cs'] - ds['snsr']
 
-    simple_comparison(snsr_daily['time'], snsr_daily, snsr_cs_daily, 
-                      'Surface Net Solar Radition (W/km^2)', 'Surface Net Solar Radiation Clear Sky (W/km^2)',
-                      'Surface Net Solar Radtion vs. Clear Sky Surface Net Solar Raditation',
-                      "snsr_vs_snsrcs")
+# take the ratio to determine the efficient the solar radiation is
+ds['efficiency'] = ds['snsr']/ds['snsr_cs']
+
+
+def mapping(title, ):
+    fig, ax = plt.subplots(
+        figsize=(10, 5),
+        subplot_kw={'projection': ccrs.Robinson()}   # 1. Choose map projection
+    )
+
+    # 2. Plot xarray data — always set transform to your data's CRS
+    ds['cre'].isel(time=0).plot(
+        ax=ax,
+        transform=ccrs.PlateCarree(),                # data is on regular lat/lon
+        cmap='plasma',
+        cbar_kwargs={'label': 'Cloud Radiative Effect', 'shrink': 0.7}
+    )
+
+    # 3. Add geographic features
+    ax.coastlines(linewidth=0.8)
+    ax.add_feature(cfeature.BORDERS, linewidth=0.5, linestyle='--')
+    ax.add_feature(cfeature.LAND, facecolor='lightgray', alpha=0.3)
+    ax.gridlines(draw_labels=True, linewidth=0.5, alpha=0.5)
+
+    ax.set_title('Cloud Radiative Effect — Model Day 1', fontsize=13)
+    plt.tight_layout()
+    plt.savefig()
+    plt.show()
