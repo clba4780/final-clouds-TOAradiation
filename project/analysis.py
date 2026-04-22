@@ -5,24 +5,39 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from grab_era5 import load, open_era5
 
-"""
-Part 1:
-Grabbing 2-meter temperature, total incident (SW) radition at TOA , and 
-total cloud cover from ERA-5
-- Create a function that inputs a time, latitude, and longitude and 
-loads the data into seperate variables
-Paramaters:
-- Time period: time_slice
-    ("start_year-start_month-start_date", "end_year-end_month-end_date")
-    (0000-00-00)
-- Latitude: lat
-    Input latitude range
-- Longitude: lon
-    Input longitude range
-"""
-
-# A funtion load the date into three different variables
 def get_era5_variables(time_slice, lat, lon, name, cache = True):
+    """
+    Open ERA5 variables relating to Surfacer Energy Balance and Cloud Effect: 
+    - Surface Net Solar Radiation (snsr)
+    - Surface Net Solar Radiation Clear Sky (snsr_cs)
+    - TOA Incident Solar Radiation (toa)
+    - Total Cloud Cover (cc)
+
+    Data are loaded lazily — nothing is downloaded until you call
+    ``.compute()`` / ``.load()`` or use the :func:`load` helper.
+
+    Paramaters
+    ----------
+    time_slice : (start, end)
+    lat : latitude
+    lon : longitude
+    name : name of NetCDF file
+
+    Returns
+    ----------
+    xr.DataArray
+        Lazy DataArray of snsr (W/m^s), snsr_cs (W/m^2), toa (W/m^2), cc (0-1)
+
+    Example 
+    ----------
+    ds = get_era5_variables(
+    time_slice = ("2025-06-22", "2025-06-22"),
+    # lat, lon correspond to the state of Kansas
+    lat = (25, 50),
+    lon = (-125, -65), 
+    name = '2025_Jun22_contigUS'
+    )
+    """
     fname = f"era_5_{name}"
     
     if cache and os.path.exists(fname + ".nc"):
