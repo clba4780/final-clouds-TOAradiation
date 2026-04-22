@@ -47,14 +47,7 @@ def get_era5_variables(time_slice, lat, lon, name, cache = True):
     return (ds['snsr'], ds['snsr_cs'], ds['toa'], ds['cc'])
 
 
-# input dates, lat, long for each variable in get_era5_variables
-ds = get_era5_variables(
-    time_slice = ("2020-01-01", "2020-01-07"),
-    # lat, lon correspond to the state of Kansas
-    lat = (37,40),
-    lon = (95, 102), 
-    name = 'oneweek_jan_kansas'
-)
+
 
 """
 Part 2:
@@ -110,6 +103,14 @@ def simple_comparison(time_slice, ds1, ds2, label1, label2, title, fig_name):
 
 
 if __name__ == "__main__":
+    ds = get_era5_variables(
+    time_slice = ("2020-01-01", "2020-01-07"),
+    # lat, lon correspond to the state of Kansas
+    lat = (37,40),
+    lon = (95, 102), 
+    name = 'oneweek_jan_kansas'
+)
+    
     snsr_avg, snsr_cs_avg, toa_avg, cc_avg = avg_values(ds['snsr'], ds['snsr_cs'], ds['toa'], ds['cc'])      
     
     snsr_daily = daily_mean(snsr_avg) / 1000
@@ -124,4 +125,4 @@ if __name__ == "__main__":
     simple_comparison(snsr_daily['time'], snsr_daily, snsr_cs_daily, 
                       'Surface Net Solar Radition (W/km^2)', 'Surface Net Solar Radiation Clear Sky (W/km^2)',
                       'Surface Net Solar Radtion vs. Clear Sky Surface Net Solar Raditation',
-                      "snsr_vs_snsrcs.png")
+                      "snsr_vs_snsrcs")

@@ -13,7 +13,8 @@ plot 2: graph of total cloud cover and TOA radoation
 ds = get_era5_variables(
     time_slice = ("2026-01-01", "2026-01-03"),
     lat = (37,40),
-    lon = (95,102)
+    lon = (95,102),
+    name = "era_5_2026_Jan1-3"
 )
 
 # calculate the time mean for each grid point
