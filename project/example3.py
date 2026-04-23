@@ -1,18 +1,13 @@
 import matplotlib.pyplot as plt
-import xarray as xr
-import numpy as np
+
 from analysis import get_era5_variables
 
 """
-Part 2:
-Analyze data from era5
-2 subplots
-plot 1: graph of tempereature averaged over a day and TOA radiation
-plot 2: graph of total cloud cover and TOA radoation
+time series of efficiency
 """
 ds = get_era5_variables(
-    time_slice = ("2026-01-01", "2026-01-03"),
-    lat = (37,40),
+    time_slice = ("2025-06-01", "2025-08-31"),
+    lat = (),
     lon = (95,102),
     name = "era_5_2026_Jan1-3"
 )

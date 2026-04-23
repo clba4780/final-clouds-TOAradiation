@@ -65,51 +65,54 @@ def get_era5_variables(time_slice, lat, lon, name, cache = True):
 
 
 
-ds = get_era5_variables(
+if __name__ == "__main__":
+    ds = get_era5_variables(
     time_slice = ("2025-06-01", "2025-08-31"),
-    # lat, lon correspond to the state of Kansas
     lat = (25, 50),
     lon = (-125, -65), 
-    name = 'era_5_summer2025_contigUS'
+    name = 'summer2025_contigUSA'
 )
 
-# take the difference between snsr and snsr_cs to determine the radiative effect of the cloud
-ds['cre'] = (ds['snsr_cs'] - ds['snsr'])/1000
+    # take the difference between snsr and snsr_cs to determine the radiative effect of the cloud
+    ds['cre'] = (ds['snsr_cs'] - ds['snsr'])/1000
 
-# take the ratio to determine the efficient the solar radiation is
-ds['efficiency'] = (ds['snsr']/ds['snsr_cs'])/1000
+    # take the ratio to determine the efficient the solar radiation is
+    ds['efficiency'] = (ds['snsr']/ds['snsr_cs'])
+
+    def mapping(title, filename, label, ds):
+        fig, ax = plt.subplots(
+            figsize=(10, 5),
+            subplot_kw={'projection': ccrs.Robinson()}   # 1. Choose map projection
+        )
+
+        # 2. Plot xarray data — always set transform to your data's CRS
+        ds['efficiency'].isel(time=0).plot(
+            ax=ax,
+            transform=ccrs.PlateCarree(),                # data is on regular lat/lon
+            cmap='plasma',
+            cbar_kwargs={'label': label, 'shrink': 0.7}
+        )
+
+        # 3. Add geographic features
+        ax.coastlines(linewidth=0.8)
+        ax.add_feature(cfeature.BORDERS, linewidth=0.5, linestyle='--')
+        ax.add_feature(cfeature.LAND, facecolor='lightgray', alpha=0.3)
+        ax.gridlines(draw_labels=True, linewidth=0.5, alpha=0.5)
+
+        # Add state borders
+        ax.add_feature(cfeature.STATES, edgecolor = 'gray', linewidth = 0.5, alpha = 0.2)
 
 
-def mapping(title, filename, label, ds):
-    fig, ax = plt.subplots(
-        figsize=(10, 5),
-        subplot_kw={'projection': ccrs.Robinson()}   # 1. Choose map projection
-    )
+        ax.set_title(title, fontsize=13)
+        plt.tight_layout()
+        plt.savefig(filename, dpi=150)
+        print (f"{filename} saved")
+        plt.show()
 
-    # 2. Plot xarray data — always set transform to your data's CRS
-    ds['efficiency'].isel(time=0).plot(
-        ax=ax,
-        transform=ccrs.PlateCarree(),                # data is on regular lat/lon
-        cmap='plasma',
-        cbar_kwargs={'label': label, 'shrink': 0.7}
-    )
+        return fig,ax
 
-    # 3. Add geographic features
-    ax.coastlines(linewidth=0.8)
-    ax.add_feature(cfeature.BORDERS, linewidth=0.5, linestyle='--')
-    ax.add_feature(cfeature.LAND, facecolor='lightgray', alpha=0.3)
-    ax.gridlines(draw_labels=True, linewidth=0.5, alpha=0.5)
-
-    # Add state borders
-    ax.add_feature(cfeature.STATES, edgecolor = 'gray', linewidth = 0.5, alpha = 0.2)
-
-
-    ax.set_title(title, fontsize=13)
-    plt.tight_layout()
-    plt.savefig(filename, dpi=150)
-    print (f"{filename} saved")
-    plt.show()
-
-    return fig,ax
-
-mapping("Cloud Efficiency Summer 2025", "efficiency_contigUS_summer.png","Cloud Efficiency (0-1)" ,ds)
+    mapping("Cloud Efficiency Summer 2025",
+            "efficiency_contigUS_summer.png",
+            "Cloud Efficiency (0-1)" ,
+            ds
+            )
