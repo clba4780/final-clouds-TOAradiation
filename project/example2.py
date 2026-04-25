@@ -1,79 +1,64 @@
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import numpy as np
-import pandas as pd
-
+from datetime import datetime
 from analysis import get_era5_variables
 
-
 """
-Example 3: Compare each variables at different locations
-This example compares two different location, but it can also be used to compare multiple locations or times
-1. Load in each location without changing the time period
-2. Resample over latitude and longitude
-3. Resample over time
-4. normalize the Datasets
-5. Plot the relationship
+Example 3: Time series analysis of the Cloud Radiative Effect and Efficiency
 """
-
-
-#Location 1: Kansas
-# Load in data and resample
-ds1 = get_era5_variables(
-    time_slice = ("2026-01-01", "2026-01-03"),
-    lat = (37,40),
-    lon = (95,102)
+ds = get_era5_variables(
+    time_slice = ("2025-06-21", "2025-06-21"),
+    lat = (25,50),
+    lon = (-125,-65),
+    name = "era_5_2026_jun21"
 )
-t2m_loc1 = ds1['t2m'].mean(dim = 'time')
-toa_loc1 = ds1['toa'].mean(dim = 'time')
-cc_loc1 = ds1['cc'].mean(dim = 'time')
-
-t2m_loc1 = ds1['t2m'].mean(dim = ['latitude', 'longitude'])
-toa_loc1 = ds1['toa'].mean(dim = ['latitude', 'longitude'])
-cc_loc1 = ds1['cc'].mean(dim=['latitude', 'longitude'])
-
-# Location 2: Florida
-ds2 = get_era5_variables(
-    time_slice = ("2026-01-01", "2026-01-03"),
-    lat = (24,31),
-    lon = (80,87)
-)
-
-t2m_loc2 = ds2['t2m'].mean(dim = 'time')
-toa_loc2 = ds2['toa'].mean(dim = 'time')
-cc_loc2 = ds2['cc'].mean(dim = 'time')
-
-t2m_loc2 = ds2['t2m'].mean(dim = ['latitude', 'longitude'])
-toa_loc2 = ds2['toa'].mean(dim = ['latitude', 'longitude'])
-cc_loc2 = ds2['cc'].mean(dim=['latitude', 'longitude'])
+# define cloud radiative effect (cre) and efficency (eff)
+cre = ds['snsr_cs'] - ds['snsr']
+eff = ds['snsr']/ds['snsr_cs']
 
 
-def normalize(x):
-    return ((x-(x.mean()))/ x.std())
+# calculate the spatial mean for each time
+cre = cre.mean(dim = ['latitude', 'longitude'])
+t2m = ds['t2m'].mean(dim = ['latitude', 'longitude'])
 
-fig, (ax_t2m, ax_toa, ax_cc) = plt.subplots(3, 1, figsize = (9,5), sharex = True)
+mask = np.isfinite(cre) & np.isfinite(t2m)
 
-# Comparing 2-m temperature 
-ax_t2m.plot(t2m_loc1['time'], normalize(t2m_loc1))
-ax_t2m.plot(t2m_loc2['time'], normalize(t2m_loc2))
-ax_t2m.set_ylabel("Normalized 2-meter temperature (°C)")
-ax_t2m.set_title('2-meter Temperature Comparison (Kansas vs. Florida)')
-ax_t2m.legend(loc = 'best')
+cre = cre[mask]
+t2m = t2m[mask]
 
-# Comparing TOA Radiation 
-ax_toa.plot(toa_loc1['time'], normalize(toa_loc1))
-ax_toa.plot(toa_loc2['time'], normalize(toa_loc2))
-ax_toa.set_ylabel("TOA Incident Solar Radiation (W/m^s)")
-ax_toa.set_title('Normalized Top of Atmosphere Incident Solar Radiation (Kansas vs. Florida)')
-ax_toa.legend(loc = 'best')
 
-# Comparing Cloud Cover
-ax_cc.plot(cc_loc1['time'], normalize(cc_loc1))
-ax_cc.plot(cc_loc2['time'], normalize(cc_loc2))
-ax_cc.set_ylabel("Cloud Cover")
-ax_cc.set_title('Normalized Total Cloud Cover (Kansas vs. Florida)')
-ax_cc.legend(loc = 'best')
+fig, ax1 = plt.subplots()
 
+
+# Define nighttime periods (adjust to your actual date)
+night_start1 = datetime(2025, 6, 21, 0, 0)
+night_end1   = datetime(2025, 6, 21, 6, 0)
+night_start2 = datetime(2025, 6, 21, 21, 0)
+night_end2   = datetime(2025, 6, 22, 0, 0)
+
+# Shade nighttime periods
+ax1.axvspan(night_start1, night_end1, color='navy', alpha=0.1, label='Nighttime')
+ax1.axvspan(night_start2, night_end2, color='navy', alpha=0.1)  # no label to avoid duplicate in legend
+
+ax1.plot(cre['time'], cre, linestyle = '-', marker = 'o', color = 'skyblue', label = 'Cloud Radiative Effect')
+ax1.set_ylabel('Cloud Radiative Effect (W/m^2)')
+ax1.set_xlabel("Hour (UTC)")
+
+ax2 = ax1.twinx()
+ax2.plot(t2m['time'], t2m, linestyle = '--', marker = 's', color = 'salmon', label ='2m Temperature')
+ax2.set_ylabel("2m Temperature (°C)")
+
+# custom x-axis to improve readability (using matplotlib.mdates)
+ax1.xaxis.set_major_locator(mdates.HourLocator(interval =3))
+ax1.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+
+handles1, labels1 = ax1.get_legend_handles_labels()
+handles2, labels2 = ax2.get_legend_handles_labels()
+ax1.legend(handles1 + handles2, labels1 + labels2, loc='best')
+
+plt.grid(True, alpha = 0.3)
+plt.title("Cloud Radiative Effect vs 2-meter Temperature (June 21,2025)")
 plt.tight_layout()
-plt.savefig("location_comparison.png", dpi=150)
-print ("location_comparison.png saved")
+plt.savefig('example2.png', dpi = 150)
 plt.show()
