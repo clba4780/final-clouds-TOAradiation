@@ -3,16 +3,23 @@ requires = ["setuptools >= 61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "grab-era5"
+name = "project"
 version = "0.1.0"
-description = "Lightweight accessor for ERA5 reanalysis data via ARCO-ERA5 on Google Cloud Storage"
+description = "Accessing ERA5 reanalysis data via ARCO-ERA5 and running analysis for radiation and temperature variables"
+readme = "README.md"
+license = {text = "MIT"}
 requires-python = ">=3.10"
+authors = [
+    {name = "Clara Bax", email = "clba4780@colorado.edu"}
+]
 dependencies = [
     "xarray>=2022.6",
     "zarr",
     "gcsfs",
     "dask",
     "numpy",
+    "matplotlib", 
+    "cartopy"
 ]
 
 [project.optional-dependencies]
