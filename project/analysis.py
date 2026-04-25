@@ -3,7 +3,7 @@ import xarray as xr
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
-from grab_era5 import load, open_era5
+from core import load, open_era5
 
 def get_era5_variables(time_slice, lat, lon, name, cache = True):
     """
@@ -32,87 +32,117 @@ def get_era5_variables(time_slice, lat, lon, name, cache = True):
     ----------
     ds = get_era5_variables(
     time_slice = ("2025-06-22", "2025-06-22"),
-    # lat, lon correspond to the state of Kansas
+    # lat, lon correspond to the contiguous United States
     lat = (25, 50),
     lon = (-125, -65), 
     name = '2025_Jun22_contigUS'
     )
     """
-    fname = f"era_5_{name}"
+    fname = f"era5_{name}"
     
     if cache and os.path.exists(fname + ".nc"):
         print ("Loading from cache...")
         return xr.open_dataset(fname + ".nc")
     
     print ("Downloading data set...")
+    # convert snsr, snsr_cs, and toa to W/km^2 and t2m to Celsius
     snsr = load(open_era5("surface_net_solar_radiation", time_slice, lat, lon))
     snsr_cs = load(open_era5("surface_net_solar_radiation_clear_sky", time_slice, lat, lon))
-    toa = load(open_era5("toa_incident_solar_radiation", time_slice, lat, lon))
     cc = load(open_era5("total_cloud_cover",time_slice, lat, lon))
+    t2m = load(open_era5("2m_temperature", time_slice, lat, lon)) - 273
     
     ds = xr.Dataset({
         "snsr" : snsr,
         "snsr_cs": snsr_cs, 
-        "toa" : toa, 
-        "cc" : cc
+        "cc" : cc,
+        "t2m" : t2m,
     })
     
     if cache:
         print ("saving dataset...")
         ds.to_netcdf(fname + ".nc")
     
-    return (ds['snsr'], ds['snsr_cs'], ds['toa'], ds['cc'])
+    return (ds['snsr'], ds['snsr_cs'], ds['cc'], ds['t2m'])
+
+def cloud_stats(ds):
+    # Cloud radiative effect
+    ds['cre'] = (ds['snsr_cs'] - ds['snsr'])
+    # Efficiency - how much solar radiation reaches the surface (0-1)
+    ds['eff'] = (ds['snsr']/ds['snsr_cs'])
+
+    return ds
+
+def map_features(ax):
+    # 3. Add geographic features
+    ax.coastlines(linewidth=0.8)
+    ax.add_feature(cfeature.BORDERS, linewidth=0.5, linestyle='--')
+    ax.add_feature(cfeature.LAND, facecolor='lightgray', alpha=0.3)
+    ax.add_feature(cfeature.STATES, edgecolor = 'gray', linewidth = 0.5, alpha = 0.2)
+    ax.gridlines(draw_labels=True, linewidth=0.5, alpha=0.5)
 
 
+def mapping(title, filename, ds, time = 0, n_rows = 1):
+    panels = [
+        {
+            "data": ds['cre'].isel(time=time),
+            "label": "Cloud Radiative Effect (kW/m^2)",
+            "subtitle": "Cloud Radiative Effect",
+            "cmap": "RdBu_r"
+        },
+        {
+            "data": ds['eff'].isel(time=time),
+            "label": "Solar Efficiency",
+            "subtitle": "Solar Efficiency", 
+            "cmap": "plasma"
+        }, 
+        {
+            "data": ds['t2m'].isel(time=time),
+            "label": "2-meter Temperature (°C)",
+            "subtitle": "2-meter Temperature",
+            "cmap": "coolwarm"
+        }
+    ]
+    n_cols = -(-len(panels)//n_rows)
+    
+    fig, ax = plt.subplots(
+        nrows = n_rows,
+        ncols = n_cols,
+        figsize = (7*n_cols,4*n_rows),
+        subplot_kw={'projection': ccrs.Robinson()},   # 1. Choose map projection
+        constrained_layout = True
+    )
+
+    axes_flat = list(ax.flat) if hasattr(ax, "flat") else [ax]
+
+    for ax, panel in zip(axes_flat, panels):
+        panel['data'].plot(
+            ax = ax,
+            transform = ccrs.PlateCarree(),
+            cmap = panel['cmap'],
+            cbar_kwargs = {'label': panel['label'], 'shrink':0.7}
+        )
+        map_features(ax)
+        ax.set_title(panel['subtitle'], fontsize = 10)
+    
+    fig.suptitle(title, fontsize =15)
+    plt.savefig(filename, dpi = 150)
+    print (f"{filename} saved")
+    plt.show()
+
+    return fig, ax
 
 if __name__ == "__main__":
     ds = get_era5_variables(
-    time_slice = ("2025-06-01", "2025-08-31"),
-    lat = (25, 50),
-    lon = (-125, -65), 
-    name = 'summer2025_contigUSA'
-)
+        time_slice = ("2025-06-01", "2025-08-31"),
+        lat = (25, 50),
+        lon = (-125, -65), 
+        name = 'summer2025_contigUSA'
+    )
 
-    # take the difference between snsr and snsr_cs to determine the radiative effect of the cloud
-    ds['cre'] = (ds['snsr_cs'] - ds['snsr'])/1000
+    cloud_stats(ds)
 
-    # take the ratio to determine the efficient the solar radiation is
-    ds['efficiency'] = (ds['snsr']/ds['snsr_cs'])
-
-    def mapping(title, filename, label, ds):
-        fig, ax = plt.subplots(
-            figsize=(10, 5),
-            subplot_kw={'projection': ccrs.Robinson()}   # 1. Choose map projection
-        )
-
-        # 2. Plot xarray data — always set transform to your data's CRS
-        ds['efficiency'].isel(time=0).plot(
-            ax=ax,
-            transform=ccrs.PlateCarree(),                # data is on regular lat/lon
-            cmap='plasma',
-            cbar_kwargs={'label': label, 'shrink': 0.7}
-        )
-
-        # 3. Add geographic features
-        ax.coastlines(linewidth=0.8)
-        ax.add_feature(cfeature.BORDERS, linewidth=0.5, linestyle='--')
-        ax.add_feature(cfeature.LAND, facecolor='lightgray', alpha=0.3)
-        ax.gridlines(draw_labels=True, linewidth=0.5, alpha=0.5)
-
-        # Add state borders
-        ax.add_feature(cfeature.STATES, edgecolor = 'gray', linewidth = 0.5, alpha = 0.2)
-
-
-        ax.set_title(title, fontsize=13)
-        plt.tight_layout()
-        plt.savefig(filename, dpi=150)
-        print (f"{filename} saved")
-        plt.show()
-
-        return fig,ax
-
-    mapping("Cloud Efficiency Summer 2025",
-            "efficiency_contigUS_summer.png",
-            "Cloud Efficiency (0-1)" ,
-            ds
-            )
+    mapping(
+        "Cloud, Solar Radiation, & Temperature Analysis - Summer 2025", 
+        filename = "analysis",
+        ds = ds, 
+    )
